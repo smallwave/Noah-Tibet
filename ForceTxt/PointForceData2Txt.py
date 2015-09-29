@@ -1,4 +1,4 @@
-##########################################################################################################
+﻿##########################################################################################################
 # NAME
 #    PointForceData2Txt.py
 # PURPOSE
@@ -115,7 +115,7 @@ class upDateCFMDData(object):
         startYear  =  self.sForceTxt.startdate.year
         endYear    =  self.sForceTxt.enddate.year
         while (startYear < endYear):
-            strStartYear        =  str(self.sForceTxt.startdate.year)
+            strStartYear        =  str(startYear)
             strMatchSuffix      =  "*"+ strStartYear +"*.nc"
             for filename in glob.glob(datafinallyPath+"\\"+ strMatchSuffix):
                 ncSingnalFilePathlist.append(filename)
@@ -263,7 +263,7 @@ class PointForceData2Txt(object):
                    for strRow in sForceTxt.CFMDData: 
                        text_file.write('{}{:17.10f}{:17.10f}{:17.10f}{:17.10f}{:17.10f}{:17.10f}{:17.10f}{:17.10f}\n' \
                            .format(strRow[0].strftime("%Y %m %d %H %M"),strRow[1],249,strRow[2],strRow[3],strRow[4],strRow[5],strRow[6],strRow[7]))  
-           print "File : " + outputTxtPathName + "write is ok !!!!!"
+           print "File : " + outputTxtPathName + " write is ok !!!!!"
 
 ###################################################################################
 # Main Test
