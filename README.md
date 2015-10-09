@@ -1,6 +1,6 @@
 # Noah-Tibet
 
-#### Noah-Tibet Model description 
+#### Noah-Tibet  description 
  Using Noah LSM simulation of the Tibetan Plateau permafrost hydrothermal features.
 #### CHANGES:<br>  
 2015.9.10 <br>  
