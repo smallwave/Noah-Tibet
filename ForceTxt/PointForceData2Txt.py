@@ -24,7 +24,7 @@ from netCDF4 import num2date
 # Class write struct 
 ###################################################################################
 class sPointForceData(object):
-    startdate                =  datetime.datetime(2008,1,1)
+    startdate                =  datetime.datetime(2010,1,1)
     enddate                  =  datetime.datetime(2011,1,1)
     loop_for_a_while         =  10
     output_dir               =  "."
@@ -38,8 +38,8 @@ class sPointForceData(object):
     Soil_Moisture            =  [0.2981597,0.2940254,0.2713114,0.3070948,0.3,0.4,0.5,0.2,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]
     Soil_Liquid              =  [0.1611681,0.2633106,0.2713114,0.3070948,0.1,0.1,0.1,0.1,0.1,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01]
     Skin_Temperature         =  263.6909
-    Canopy_water             =  3.9353027E-04
-    Snow_depth               =  1.0600531E-03
+    Canopy_water             =  3.9353027E-04   #Canopy moisture content (kg m-2)
+    Snow_depth               =  1.0600531E-03   #Water equivalent accumulated snow depth (m)
     Snow_equivalent          =  2.0956997E-04
     Deep_Soil_Temperature    =  288
     Landuse_dataset          =  "USGS"
@@ -47,7 +47,7 @@ class sPointForceData(object):
     Vegetation_type_index    =  7
     Urban_veg_category       =  1
     glacial_veg_category     =  24
-    Slope_type_index         =  1
+    Slope_type_index         =  1               #Slope category
     Max_snow_albedo          =  0.75
     Air_temperature_level    =  3.0
     Wind_level               =  6.0 
@@ -270,17 +270,24 @@ class PointForceData2Txt(object):
 ###################################################################################
 if __name__ == '__main__':
     start = time.clock()
+
+    # new object
+    spointForceData    =   sPointForceData() 
+
+    #update 1 CFMD data   
+    ncFilePath         =   "D:\\workspace\\Data\\CFMD(QTP)\\Data_forcing_03hr_010deg_Unzip\\"
+    strFileNameList    =   ("Wind","Temp","SHum","Pres","SRad","LRad","Prec")  
+    updateCFMDData     =   upDateCFMDData(ncFilePath,
+                                          spointForceData,
+                                          strFileNameList)
+    spointForceData.CFMDData =  updateCFMDData.getCFMDData()
+    #update 2 other info  eg:lai
+
+
+
+    #write
     txtFilePath        =   "E:\\worktemp\\Permafrost(NOAH)\\Data\\Run\\"
     ptForceData2Txt    =   PointForceData2Txt(txtFilePath)
-    spointForceData    =   sPointForceData() 
-    #update CFMD data
-    ncFilePath         =   "D:\\workspace\\Data\\CFMD(QTP)\\Data_forcing_03hr_010deg_Unzip\\"
-    strFileNameList    =   ("Wind","Temp","SHum","Pres","SRad","LRad","Prec",)  
-    updateCFMDData     =   upDateCFMDData(ncFilePath,
-                                         spointForceData,
-                                         strFileNameList)
-    spointForceData.CFMDData =  updateCFMDData.getCFMDData()
-    #write
     ptForceData2Txt.writePointData2Txt(spointForceData)
     end = time.clock()
     print "Convert is request:  %f s" % (end - start)
