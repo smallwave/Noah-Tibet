@@ -13,7 +13,8 @@
  Add Result Process <br> 
 2015.10.11 <br> 
  Add parameterTxtUpdate.py  using update soil and veg parameter before model run <br> 
- 
+2015.10.27 <br>  
+ Add TGL soil process program using R langusge <br>
 
 
 
