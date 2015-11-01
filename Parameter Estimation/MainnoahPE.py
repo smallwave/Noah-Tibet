@@ -17,12 +17,10 @@ import spotpy
 from spot_setup_noah import spot_setup
 from spotpy import analyser
 
-
 #Main code
 if __name__ == '__main__':
     # start Time
     start = time.clock()
-
     results=[]
     rep=500
     sampler = spotpy.algorithms.fast(spot_setup(),  dbname='TGLFAST',  dbformat='csv')

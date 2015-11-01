@@ -12,9 +12,12 @@
 2015.10.10 <br> 
  Add Result Process <br> 
 2015.10.11 <br> 
- Add parameterTxtUpdate.py  using update soil and veg parameter before model run <br> 
-2015.10.27 <br>  
- Add TGL soil process program using R langusge <br>
+ Add parameterTxtUpdate.py  using update soil and veg parameter before model run <br>    
+2015.10.29 <br>  
+ Update MainCFMD2Txt include scale factor unit change <br> 
+2015.11.1 <br>  
+ Add MianCompare  <br>  
+
 
 
 

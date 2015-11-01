@@ -9,7 +9,7 @@
 # REVISION HISTORY
 #    20150915 -- Initial version created and posted online
 #    20150916 -- update UPDateCFMDData(class)
-
+#    20151029 -- update scale factor and add qair2rh
 # REFERENCES
 
 ##########################################################################################################from datetime import *  
@@ -18,32 +18,34 @@ import glob
 import datetime 
 import time 
 import numpy as np
+import math
 from netCDF4 import Dataset 
 from netCDF4 import num2date
 ###################################################################################
 # Class write struct 
 ###################################################################################
 class sPointForceData(object):
-    startdate                =  datetime.datetime(2010,1,1)
+    startdate                =  datetime.datetime(2007,1,1)
     enddate                  =  datetime.datetime(2011,1,1)
     loop_for_a_while         =  10
     output_dir               =  "."
     Longitude                =  91.939      # lon  
     Latitude                 =  33.072      # lat    
     Forcing_Timestep         =  10800
-    Noahlsm_Timestep         =  3600
+    Noahlsm_Timestep         =  86400
     Sea_ice_point            =  False
-    Soil_layer_thickness     =  [0.1,0.3,0.6,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]
-    Soil_Temperature         =  [266.0995,274.0445,276.8954,279.9152,280,281,280,281,280,279,279,280,282,283,284,285,286,286,287,288]
-    Soil_Moisture            =  [0.2981597,0.2940254,0.2713114,0.3070948,0.3,0.4,0.5,0.2,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]
-    Soil_Liquid              =  [0.1611681,0.2633106,0.2713114,0.3070948,0.1,0.1,0.1,0.1,0.1,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01]
+    Soil_layer_thickness     =  [0.04,0.06,0.04,0.16,0.24,0.36,0.04,0.26,0.44,0.26,0.44,0.26,0.44,1.16,0.64,1.36,0.64,1.36,0.64,1.36,1.64,2.36,1.64]
+    Soil_Temperature         =  [277.8238,278.419,279.163,279.657,276.335,274.047,272.954,272.244,271.682,271.359,271.111,270.981,270.927,270.796,270.826,270.946,271.132,271.407,271.649,271.853,272.037,272.125,272.172]
+    Soil_Moisture            =  [0.151,0.111,0.04,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    Soil_Liquid              =  [0.151,0.111,0.04,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    Soil_htype               =  [3,3,3,17,17,17,17,14,14,14,16,16,16,14,14,14,14,14,14,14,14,14,14]
     Skin_Temperature         =  263.6909
     Canopy_water             =  3.9353027E-04   #Canopy moisture content (kg m-2)
     Snow_depth               =  1.0600531E-03   #Water equivalent accumulated snow depth (m)
     Snow_equivalent          =  2.0956997E-04
     Deep_Soil_Temperature    =  288
     Landuse_dataset          =  "USGS"
-    Soil_type_index          =  8
+    Soil_type_index          =  3
     Vegetation_type_index    =  7
     Urban_veg_category       =  1
     glacial_veg_category     =  24
@@ -52,10 +54,10 @@ class sPointForceData(object):
     Air_temperature_level    =  3.0
     Wind_level               =  6.0 
     Green_Vegetation_Min     =  0.01
-    Green_Vegetation_Max     =  0.96
+    Green_Vegetation_Max     =  0.36
     Usemonalb                =  False
     Rdlai2d                  =  False
-    sfcdif_option            =  1
+    sfcdif_option            =  2
     iz0tlnd                  =  0
     Albedo_monthly           =  [0.18,0.17,0.16,0.15,0.15,0.15,0.15,0.16,0.16,0.17,0.17,0.18]
     Shdfac_monthly           =  [0.01,0.02,0.07,0.17,0.27,0.58,0.93,0.96,0.65,0.24,0.11,0.02]
@@ -81,6 +83,8 @@ class upDateCFMDData(object):
     LongitudeIdx        = -1      # array x 
     LatitudeIdx         = -1      # array y
     vartimeDate         = [] 
+    scale_factor        = 0       #2015.10.30
+    add_offset          = 0       #2015.10.30
     ###################################################################################
     # Function initForceTxt
     ###################################################################################
@@ -92,14 +96,34 @@ class upDateCFMDData(object):
        self.strFileNameList  =  strFileNameListIn;
     ###################################################################################
     # Function writeForceTxt
+    ################################################################################### 
+    '''
+     ' Convert specific humidity to relative humidity 
+     ' converting specific humidity into relative humidity 
+     ' NCEP surface flux data does not have RH 
+     ' from Bolton 1980 Teh computation of Equivalent Potential Temperature  
+     ' \url{http://www.eol.ucar.edu/projects/ceop/dm/documents/refdata_report/eqns.html} 
+     ' @title qair2rh 
+     ' @param qair specific humidity, dimensionless (e.g. kg/kg) ratio of water mass / total air mass 
+     ' @param temp degrees K 
+     ' @param press pressure in hPa(mb) 
+     ' @return rh relative humidity, ratio of actual water mixing ratio to saturation mixing ratio 
+    ''' 
+    def __shum2rh(self,shum,tempK,press):
+        temp  = tempK - 273.15
+        es    = 6.112 * math.exp((17.67 * temp)/(temp + 243.5))
+        e     = shum * press / (0.378 * shum + 0.622)
+        rh    = e / es * 100
+        return rh
+    ###################################################################################
+    # Function writeForceTxt
     ###################################################################################
     def getCFMDData(self):
         print "# search filepathlist           ################################"
         ncAllFilePathlist =  self.__searchAllFile()
         print "# Fetching data from path list  ################################"
-        PointData        =  self.__getAllPointData(ncAllFilePathlist)
+        PointData        =   self.__getAllPointData(ncAllFilePathlist)
         return PointData
-
     ###################################################################################
     # Function searchFile
     ###################################################################################
@@ -144,11 +168,10 @@ class upDateCFMDData(object):
     def __getPointData(self,ncFilePathlist):
         varPointData = []
         del varPointData[:]
-        varName     = ""
-        __bExtractTime = True
+        varName               = ""
+        __bExtractTime        = True
         if (len(self.vartimeDate) > 0):
             __bExtractTime = False
-
         for file_name in ncFilePathlist:
             ncInput    =  Dataset(file_name,'r', Format='NETCDF3_CLASSIC')
             if(__bExtractTime):
@@ -173,8 +196,20 @@ class upDateCFMDData(object):
                     print "There have no varName: " + varName
                     os.system("pause")
                     exit(0)
-            varData       = ncInput.variables[varName][:]
-            pointData     = list(varData[:,self.LatitudeIdx, self.LongitudeIdx].data)
+            #scale_factor  = ncInput.variables[varName].getncattr("scale_factor")
+            #add_offset    = ncInput.variables[varName].getncattr("add_offset")
+            varData        = ncInput.variables[varName][:]
+            pointData      = list(varData[:,self.LatitudeIdx, self.LongitudeIdx].data)
+            #if(scale_factor != 0):        #2015.10.30  scale
+            #    pointData     = map(lambda x:x*scale_factor + add_offset,pointData)
+            if(cmp(varName,"pres") == 0): #2015.10.29  pa->hpa
+                pointData     = map(lambda x:x/100.0,pointData)
+            if(cmp(varName,"prec") == 0): #2015.10.29  mm h{-1} -> kg m{-2} s{-1}
+                pointData     = map(lambda x:x/3600.0,pointData)
+            #if(cmp(varName,"srad") == 0): #2015.10.30  mean -> 3hour
+            #    pointData     = map(lambda x:x* 3.0,pointData)
+            #if(cmp(varName,"lrad") == 0): #2015.10.30  mean -> 3hour
+            #    pointData     = map(lambda x:x* 3.0,pointData)
             varPointData.extend(pointData)
             ncInput.close
         return list(varPointData)
@@ -189,10 +224,14 @@ class upDateCFMDData(object):
                 exit(0)
             varPointData = self.__getPointData(ncFilePathlist)
             varPointAllData.append(varPointData)
+
+        #update Rh value 2015.10.29
+        values = map(self.__shum2rh,varPointAllData[2],varPointAllData[1],varPointAllData[3])
+        varPointAllData[2] = values
+        #add time
         if (len(self.vartimeDate) > 0):
             varPointAllData.insert(0,self.vartimeDate)
         return zip(*varPointAllData)
-
 ###################################################################################
 # Class write forcedata to txt
 ###################################################################################
@@ -223,6 +262,7 @@ class PointForceData2Txt(object):
                text_file.write(' Soil_Temperature      = {}\n'.format('  '.join(str(x) for x in sForceTxt.Soil_Temperature)))   
                text_file.write(' Soil_Moisture         = {}\n'.format('  '.join(str(x) for x in sForceTxt.Soil_Moisture)))  
                text_file.write(' Soil_Liquid           = {}\n'.format('  '.join(str(x) for x in sForceTxt.Soil_Liquid)))  
+               text_file.write(' Soil_htype            = {}\n'.format('  '.join(str(x) for x in sForceTxt.Soil_htype)))  
                text_file.write(' Skin_Temperature      = {}\n'.format(sForceTxt.Skin_Temperature))  
                text_file.write(' Canopy_water          = {}\n'.format(sForceTxt.Canopy_water))  
                text_file.write(' Snow_depth            = {}\n'.format(sForceTxt.Snow_depth))  

@@ -20,7 +20,11 @@ class NcFileProcess(object):
     def __init__(self,strncFilePath):
         self.strncDataPath    =  strncFilePath;
     # get request input number layer, dataName
-    def getNcData(self,varName,nLayer,startTime,endTime):
+    def getNcData(self,varName,nLayer,startTime = None ,endTime = None):
+        if startTime is None:
+            startTime = datetime.datetime(2010,1,1)
+        if endTime is None:
+            endTime   = datetime.datetime(2010,12,31)
         file_name   = self.strncDataPath
         if not os.path.exists(file_name):
             print "Error there have no " + file_name
