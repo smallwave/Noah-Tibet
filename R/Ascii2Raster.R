@@ -15,9 +15,7 @@
 library(sp)
 library(rgdal)
 library(raster)
-library(stringr)
-library(plyr)
-
+library(maptools)
 
 #asciiPath
 inputAscii  <-  "D:/Temp/Input/"
@@ -54,4 +52,3 @@ for(asciifilepath in asciifiles)
   #write result
   writeRaster(newRaster_msk, filename=rsfilePath, format="GTiff", overwrite=TRUE)
 }
-
