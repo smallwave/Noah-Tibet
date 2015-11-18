@@ -18,8 +18,10 @@
 2015.11.1 <br>  
  Add MianCompare  <br>  
 
+2015.11.18 <br>  
 
-
+#### Dependencies
+To build from source, you will need: <br>  
 
  
 
