@@ -14,13 +14,24 @@
 from netCDF4 import Dataset  
 import datetime
 import os
+import numpy as np
+import pandas
 
 class NcFileProcess(object):
     """description of class"""
     def __init__(self,strncFilePath):
         self.strncDataPath    =  strncFilePath;
+        self.varTimeDataArray      =  None;
+
+    # 2015.11.2
+    def strdt3dt(self,strTime):
+        strTime    = strTime.tostring()
+        outputDt   = datetime.datetime.strptime(strTime,'%Y%m%d%H%M')
+        return outputDt  
+
     # get request input number layer, dataName
-    def getNcData(self,varName,nLayer,startTime = None ,endTime = None):
+    # input 
+    def getNcDataByDay(self,varName,nLayer,startTime = None, endTime = None):
         if startTime is None:
             startTime = datetime.datetime(2010,1,1)
         if endTime is None:
@@ -34,22 +45,21 @@ class NcFileProcess(object):
         # get var data
         varData       =  ncInput.variables[varName][:]
         varDataLayer  =  varData.transpose()[nLayer]
-        # get time infomation
-        varTimeData   =  ncInput.variables["Times"][:]
-        resList       =  []
-        for i in  range(0, len(varDataLayer)): 
-            strTime    = varTimeData[i].tostring()
-            timeNcFile = datetime.datetime.strptime(strTime,'%Y%m%d%H%M')
-            if((startTime - timeNcFile).days == 0): # -1 is equal
-                resList.append(varDataLayer[i])
-            if((timeNcFile - startTime).days > 0 ):
-                startTime = startTime + datetime.timedelta(days=1)
-                if((startTime - timeNcFile).days == 0): # -1 is equal
-                    resList.append(varDataLayer[i])
-                if((startTime - endTime).days > 0):
-                    break
+        # is get time infomation
+        if self.varTimeDataArray is None:
+            varTimeData            =  ncInput.variables["Times"][:]
+            self.varTimeDataArray  =  map(self.strdt3dt,varTimeData)
+        # group data
+        # 2015.11.2
+        varDataFrame         =  pandas.DataFrame(varDataLayer, index = self.varTimeDataArray, columns=['Temp'])
+        varSelDataFrame      =  varDataFrame.loc[startTime:endTime]   
+        #group by day
+        groupVarSelData      =  varSelDataFrame.groupby(lambda x: (x.year,x.month,x.day))
+        groupVarSelDataMean  =  groupVarSelData.mean() 
+        #clip by sele data
+        resList              =  groupVarSelDataMean['Temp'].values.tolist()
         return resList
-
+        # strdt3dt
 
 
 

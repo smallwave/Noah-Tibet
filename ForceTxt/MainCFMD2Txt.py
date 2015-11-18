@@ -25,14 +25,14 @@ from netCDF4 import num2date
 # Class write struct 
 ###################################################################################
 class sPointForceData(object):
-    startdate                =  datetime.datetime(2007,1,1)
+    startdate                =  datetime.datetime(2004,1,1)
     enddate                  =  datetime.datetime(2011,1,1)
     loop_for_a_while         =  10
     output_dir               =  "."
+    Latitude                 =  33.072      # lat  
     Longitude                =  91.939      # lon  
-    Latitude                 =  33.072      # lat    
     Forcing_Timestep         =  10800
-    Noahlsm_Timestep         =  86400
+    Noahlsm_Timestep         =  10800
     Sea_ice_point            =  False
     Soil_layer_thickness     =  [0.04,0.06,0.04,0.16,0.24,0.36,0.04,0.26,0.44,0.26,0.44,0.26,0.44,1.16,0.64,1.36,0.64,1.36,0.64,1.36,1.64,2.36,1.64]
     Soil_Temperature         =  [277.8238,278.419,279.163,279.657,276.335,274.047,272.954,272.244,271.682,271.359,271.111,270.981,270.927,270.796,270.826,270.946,271.132,271.407,271.649,271.853,272.037,272.125,272.172]
@@ -205,7 +205,7 @@ class upDateCFMDData(object):
             if(cmp(varName,"pres") == 0): #2015.10.29  pa->hpa
                 pointData     = map(lambda x:x/100.0,pointData)
             if(cmp(varName,"prec") == 0): #2015.10.29  mm h{-1} -> kg m{-2} s{-1}
-                pointData     = map(lambda x:x/3600.0,pointData)
+                pointData     = map(lambda x:x/1000.0,pointData)
             #if(cmp(varName,"srad") == 0): #2015.10.30  mean -> 3hour
             #    pointData     = map(lambda x:x* 3.0,pointData)
             #if(cmp(varName,"lrad") == 0): #2015.10.30  mean -> 3hour

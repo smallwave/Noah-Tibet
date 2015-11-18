@@ -19,7 +19,7 @@ from datetime import datetime
 import subprocess
 import os
 import sys
-from parameterTxtUpdate import ParameterUpdate
+from ParameterTxtUpdate import ParameterUpdate
 from ReadObs import ReadObsData
 sys.path.append('Result Process')
 from NcFileResPostProcess import NcFileProcess
@@ -29,15 +29,19 @@ from NcFileResPostProcess import NcFileProcess
 ##################################################################################### 
 class spot_setup(object):
     """description of class"""
-    def __init__(self):
+    def __init__(self,nalyer = None,soilType = None):
         analysestart   = datetime(2010,1,1)
         analysesend    = datetime(2010,12,31)
-        self.noahmodel = NoahModel(analysestart,analysesend)
+        if nalyer is None:
+            nalyer   = 2
+        if soilType is None:
+            soilType = 3
+        self.noahmodel = NoahModel(analysestart,analysesend,nalyer,soilType)
     def parameters(self):
         pars = []   #distribution of random value      #name  #stepsize# optguess
-        pars.append((np.random.uniform(low=2.00,high=10.00),      'BB',      0.01,  4.52))  
+        pars.append((np.random.uniform(low=2.00,high=8.00),       'BB',      0.01,  4.52))  
         pars.append((np.random.uniform(low=0.40,high=0.90),       'QTZ',     0.01,  0.65))  
-        pars.append((np.random.uniform(low=1.00E-6,high=1.00E-5), 'SATDK',   0.01,  4.12E-6)) 
+        pars.append((np.random.uniform(low=1.00E-6,high=8.00E-6), 'SATDK',   0.01,  4.12E-6)) 
         pars.append((np.random.uniform(low=0.35,high=0.55),       'MAXSMC',  0.01,  0.434)) 
         pars.append((np.random.uniform(low=0.1,high=0.65),        'SATPSI',  0.01,  0.141)) 
         dtype=np.dtype([('random', '<f8'), ('name', '|S30'),('step', '<f8'),('optguess', '<f8')])
@@ -49,7 +53,7 @@ class spot_setup(object):
         return simulations
  
     def evaluation(self):
-        observations= self.noahmodel.observations_05
+        observations= self.noahmodel.observations
         return observations
 
     def likelihood(self,simulation,evaluation):
@@ -65,17 +69,25 @@ class NoahModel(object):
            analysestart: e.g. datetime(1999,1,1)
     Output: Initialised model instance with forcing data (climate) and evaluation data (soil temperature)
     '''
-    def __init__(self,analysestart,analysesend):
+    def __init__(self,analysestart,analysesend,nlayer,soilType):
         self.analysestart = analysestart
         self.analysesend  = analysesend
+        self.nlayer       = nlayer
+        self.soilType     = soilType
+        ###########################################################################
+        #
+        ###################### Init ####################################   
+        self.paraUpdate    =  ParameterUpdate("E:\\worktemp\\Permafrost(NOAH)\\Data\\Run\\SOILPARM.TBL")
+        self.ncFileProcess =  NcFileProcess("E:\\worktemp\\Permafrost(NOAH)\\Data\\Run\\OUTPUT.nc");
         ###########################################################################
         #
         ###################### Evaluation data ####################################    
         #just for test
-        readObsData   =  ReadObsData("E:\\worktemp\\Permafrost(NOAH)\\Data\\TGL2010TEMP.xlsx");
-        obsDataRes    =  readObsData.getObsData(2)
-        self.observations_05 = obsDataRes
+        readObsData        =  ReadObsData("E:\\worktemp\\Permafrost(NOAH)\\Data\\TGL2010TEMP.xls");
+        obsDataRes         =  readObsData.getObsData(self.nlayer)
+        self.observations  =  obsDataRes
         ###########################################################################
+
 
     def _run(self,dictPara):
         #return alpha,n,porosity,ksat
@@ -86,15 +98,12 @@ class NoahModel(object):
         Output: Simulated values on given observation days
         ''' 
         #1 update  SOILPARM.TBL
-        paraUpdate  = ParameterUpdate("E:\\worktemp\\Permafrost(NOAH)\\Data\\Run\\SOILPARM.TBL")
-        soilType    = 3
-        paraUpdate.updateSoilParameterFile(soilType,dictPara)
-
+        self.paraUpdate.updateSoilParameterFile(self.soilType,dictPara)
         ##2 run model
         os.chdir('E:\\worktemp\\Permafrost(NOAH)\\Data\\Run\\')
-        command     = 'simple_driver.exe 91.939_33.072.txt'
+        command       =  'simple_driver.exe TGLCH.txt'
         subprocess.call(command, shell=True)  #call 7z command
         # 3 get model res return
-        ncFileProcess =  NcFileProcess("E:\\worktemp\\Permafrost(NOAH)\\Data\\Run\\OUTPUT.0000.nc");
-        modelRes      =  ncFileProcess.getNcData("STC",2,self.analysestart,self.analysesend)
+        getnlayer     =   self.nlayer - 1
+        modelRes      =   self.ncFileProcess.getNcDataByDay("STC",getnlayer,self.analysestart,self.analysesend)
         return  map(lambda x:x-273.15,modelRes)
