@@ -24,11 +24,12 @@ if __name__ == '__main__':
     results=[]
 
     # init infomation
-    rep        =   500
+    rep        =   5000
     nlayer     =   13
-    soilType   =   16
+    soilType   =   1
+    peType     =   "STC"  #SH2O  STC
 
-    sampler = spotpy.algorithms.fast(spot_setup(nlayer,soilType),  dbname='TGLFAST2.8',  dbformat='csv')
+    sampler = spotpy.algorithms.sceua(spot_setup(nlayer,soilType,peType),  dbname='TGLFAST2.8',  dbformat='csv')
     #Create samplers for fast algorithm:
     sampler.sample(rep)
     results = sampler.getdata()

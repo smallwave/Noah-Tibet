@@ -17,8 +17,14 @@
  Update MainCFMD2Txt include scale factor unit change <br> 
 2015.11.1 <br>  
  Add MianCompare  <br>  
+2015.12.06 <br>
+ Add RemoveOutliers <br>
+2015.12.18 <br>
+ Add getMaxMinData <br>
 
-2015.11.18 <br>  
+
+
+
 
 #### Dependencies
 To build from source, you will need: <br>  

@@ -124,7 +124,7 @@ for file_name in fileset:
     # 'NETCDF3_CLASSIC', 'NETCDF3_64BIT', 'NETCDF4_CLASSIC', and 'NETCDF4'
     ###################################################################################
     #create file path and name
-    InputFileDir,InputFile = os.path.split(file_name)  
+    InputFileDir,InputFile    = os.path.split(file_name)  
     InputDir,InputFileDirName = os.path.split(InputFileDir)  
     OutputFileDir = os.path.join(strNetCDFPathOutput,InputFileDirName)
     if not os.path.exists(OutputFileDir):
