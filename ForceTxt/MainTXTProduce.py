@@ -16,36 +16,46 @@ from CFMD2Txt import upDateTxtInfo
 from CFMD2Txt import upDateCFMDData
 from CFMD2Txt import getCFMDDataFiles
 from CFMD2Txt import PointForceData2Txt
-from CFMD2Txt import getCFMDDate
 import shapefile
 import time 
+import datetime 
 import os.path
+import sys
+sys.path.append('GetDate')
+from getNcFileDate import getListNcFileDate
+
 ###################################################################################
 # Main Test
 ###################################################################################
 if __name__ == '__main__':
     start = time.clock()
     # new object
-    spointForceData    =   sPointForceData() 
+    spointForceData            =   sPointForceData() 
+    spointForceData.startdate  =   datetime.datetime(1988,1,1)
+    spointForceData.enddate    =   datetime.datetime(1997,1,1)
     #update 1 update soil veg and lon lat
-    sfPoint   = shapefile.Reader("E:/worktemp/Permafrost(MAPPING)/Data/Point/Group/1999.shp")
+    sfPoint   = shapefile.Reader("E:/worktemp/Permafrost(MAPPING)/Data/Point/Group1996/Test.shp")
     #define vars
     ncFilePath         =   "D:\\workspace\\Data\\CFMD(QTP)\\Data_forcing_03hr_010deg_Unzip\\"
-    txtFilePath        =   "E:\\worktemp\\Permafrost(MAPPING)\\QTP(TXT)\\"
-    strncResPath       =   "E:\\worktemp\\Permafrost(MAPPING)\\QTP(NC)\\"
+    txtFilePath        =   "E:\\worktemp\\Permafrost(MAPPING)\\QTP1996(TXT)\\"
+    strncResPath       =   "E:\\worktemp\\Permafrost(MAPPING)\\QTP1996(NC)\\"
     spointForceData.output_dir = strncResPath
 
     #get all files
     strFileNameList    =   ("Wind","Temp","SHum","Pres","SRad","LRad","Prec")  
-    getCFMDFiles       =   getCFMDDataFiles(ncFilePath,strFileNameList,spointForceData)
+    getCFMDFiles       =   getCFMDDataFiles(ncFilePath,
+                                            strFileNameList,
+                                            spointForceData.startdate,
+                                            spointForceData.enddate)
     ncAllFilePathlist  =   getCFMDFiles.getCFMDFiles()
     if len(ncAllFilePathlist) <= 0 :
         print "There have no Path: " + datafinallyPath
         os.system("pause")
         exit(0)
     #get date info
-    getCFMDDateAll    =   getCFMDDate(ncAllFilePathlist[0])
+    getCFMDDateAll    =   getListNcFileDate(ncAllFilePathlist[0])
     varTypeData       =   getCFMDDateAll.getCFMDDateAll()
+
 
     #Batch
     shapeRecs = sfPoint.shapeRecords()
@@ -60,7 +70,9 @@ if __name__ == '__main__':
         if os.path.isfile(outputTxtPathName) and os.access(outputTxtPathName, os.R_OK):
             continue
         #update 2 CFMD data   
-        updateCFMDData     =   upDateCFMDData(spointForceData,ncAllFilePathlist)
+        updateCFMDData     =   upDateCFMDData(spointForceData.Latitude,
+                                              spointForceData.Longitude,
+                                              ncAllFilePathlist)
         spointForceData.CFMDData =  updateCFMDData.getCFMDData(varTypeData)
         #write files
         ptForceData2Txt    =   PointForceData2Txt(outputTxtPathName)

@@ -23,7 +23,7 @@ from UpdateForceTxt import cForceTxtUpdate
 if __name__ == '__main__':
 
     strtxtForcePath = "E:\\worktemp\\Permafrost(MAPPING)\\XIKUNLUN(TXT)\\"
-    strncResPath    = "E:\\worktemp\\Permafrost(MAPPING)\\XIKUNLUN(NC)\\"
+    #strncResPath    = "E:\\worktemp\\Permafrost(MAPPING)\\XIKUNLUN(NC)\\"
     #1 run model
     fileset = formic.FileSet(include="**/*.txt", directory= strtxtForcePath)
     nFile   = 0 # print process file ID
@@ -34,5 +34,5 @@ if __name__ == '__main__':
         print "################################################################"
         # update output path
         forceTxtUpdate  =  cForceTxtUpdate(file_name)
-        forceTxtUpdate.updateOutput(strncResPath)
+        forceTxtUpdate.updateSfcdif_OptionByNDVI()
         # update temp

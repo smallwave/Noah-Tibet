@@ -86,32 +86,18 @@ class upDateTxtInfo(object):
              dem = 5300
          self.sForceTxt.Deep_Soil_Temperature =  dem * (-0.0063) + 30.98 + 273 # ch Doc paper
          self.sForceTxt.Skin_Temperature      =  float(self.shapeRec[21])
+         #update NDVI  2016.1.31
+         ndvi                                 =  float(self.shapeRec[23])
+         if(ndvi > 70):
+             self.sForceTxt.sfcdif_option     =  1
          return  self.sForceTxt;
-
-###################################################################################
-# Class get CFMD date
-###################################################################################
-class getCFMDDate(object):
-    ''' get date '''
-    ncTypeList = []
-    def __init__(self,ncTypeListIn):
-        self.ncTypeList = ncTypeListIn
-    def getCFMDDateAll(self):
-        varTimeDataList  = []
-        for file_name in self.ncTypeList:
-            ncInput      =  Dataset(file_name,'r', Format='NETCDF3_CLASSIC')
-            vartimeDate  = ncInput.variables["time"][:]
-            units        = ncInput.variables['time'].units
-            vardates     = num2date(vartimeDate[:],units=units)
-            varTimeDataList.extend(list(vardates))
-            ncInput.close
-        return varTimeDataList
 
 ###################################################################################
 # Class update CFMD txtinfo
 ###################################################################################
 class upDateCFMDData(object):
-    sForceTxt           = 0 
+    Latitude            =  33.072      # lat  
+    Longitude           =  91.939      # lon  
     LongitudeIdx        = -1      # array x 
     LatitudeIdx         = -1      # array y
     scale_factor        = 0       #2015.10.30
@@ -121,9 +107,10 @@ class upDateCFMDData(object):
     # Function initForceTxt
     ###################################################################################
     def __init__(self,
-                 structForceTxtIn,
+                 LatitudeIn,LongitudeIn,
                  ncAllFilePathlistIn):
-       self.sForceTxt          =  structForceTxtIn;
+       self.Latitude           =  LatitudeIn;
+       self.Longitude          =  LongitudeIn;
        self.ncAllFilePathlist  =  ncAllFilePathlistIn;
     ###################################################################################
     # Function writeForceTxt
@@ -167,8 +154,8 @@ class upDateCFMDData(object):
             if (self.LatitudeIdx == -1 or self.LongitudeIdx == -1 ) :
                lats                 = ncInput.variables['lat'][:]  # extract/copy the data
                lons                 = ncInput.variables['lon'][:]
-               self.LatitudeIdx     = np.abs(lats - self.sForceTxt.Latitude).argmin()
-               self.LongitudeIdx    = np.abs(lons - self.sForceTxt.Longitude).argmin()
+               self.LatitudeIdx     = np.abs(lats - self.Latitude).argmin()
+               self.LongitudeIdx    = np.abs(lons - self.Longitude).argmin()
             if(len(varName) == 0):
                 varList    = ncInput.variables.keys()
                 varList.remove("lon")
@@ -215,13 +202,15 @@ class upDateCFMDData(object):
 # Class getCFMDFiles
 ###################################################################################
 class getCFMDDataFiles(object):
-    sForceTxt           = 0 
     strncDataPath       = ""
-    strFileNameList     = ""   
-    def __init__(self,strncFilePathIn,strFileNameListIn,sForceTxtIn):
-        self.strncDataPath    =  strncFilePathIn;
+    strFileNameList     = "" 
+    startdate           =  datetime.datetime(2002,1,1)
+    enddate             =  datetime.datetime(2011,1,1)
+    def __init__(self,strncFilePathIn,strFileNameListIn,startDateIn,endDateIn):
+        self.strncDataPath      =  strncFilePathIn;
         self.strFileNameList    =  strFileNameListIn;
-        self.sForceTxt          =  sForceTxtIn;
+        self.startdate          =  startDateIn;
+        self.enddate            =  endDateIn;
     def getCFMDFiles(self):
         print "# search filepathlist           ################################"
         ncAllFilePathlist =  self.__searchAllFile()
@@ -238,8 +227,8 @@ class getCFMDDataFiles(object):
             exit(0)
         ncSingnalFilePathlist  = []
         del ncSingnalFilePathlist[:]
-        startYear  =  self.sForceTxt.startdate.year
-        endYear    =  self.sForceTxt.enddate.year
+        startYear  =  self.startdate.year
+        endYear    =  self.enddate.year
         while (startYear < endYear):
             strStartYear        =  str(startYear)
             strMatchSuffix      =  "*"+ strStartYear +"*.nc"
@@ -259,8 +248,8 @@ class getCFMDDataFiles(object):
                 os.system("pause")
                 exit(0)
             else:
-                print subDirectory + " data have been Find From " + str(self.sForceTxt.startdate.year) +" to "  \
-                                   + str(self.sForceTxt.enddate.year)
+                print subDirectory + " data have been Find From " + str(self.startdate.year) +" to "  \
+                                   + str(self.enddate.year)
             ncAllFilePathlist.append(self.__searchSingnalFile(datafinallyJoinPath))
         return ncAllFilePathlist
 

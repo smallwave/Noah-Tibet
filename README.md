@@ -23,9 +23,6 @@
  Add getMaxMinData <br>
 
 
-
-
-
 #### Dependencies
 To build from source, you will need: <br>  
 
