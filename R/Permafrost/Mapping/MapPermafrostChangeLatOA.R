@@ -1,3 +1,19 @@
+
+##########################################################################################################
+# NAME
+#    
+# PURPOSE
+#   
+#
+# PROGRAMMER(S)
+#   wuxb
+# REVISION HISTORY
+#    20160921 -- Initial version created and posted online
+#
+# REFERENCES
+##########################################################################################################
+
+
 library(raster)
 library(rgdal) # for spTransform
 

@@ -1,4 +1,19 @@
+
+##########################################################################################################
+# NAME
+#    
+# PURPOSE
+#   
 #
+# PROGRAMMER(S)
+#   wuxb
+# REVISION HISTORY
+#    20160922 -- Initial version created and posted online
+#
+# REFERENCES
+##########################################################################################################
+
+
 library(sp)
 library(plyr) # need for dataset ozone
 library(raster)
