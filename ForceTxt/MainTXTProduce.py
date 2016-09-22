@@ -8,7 +8,7 @@
 #   wuxb
 # REVISION HISTORY
 #    20151230 -- Initial version created and posted online
-#
+#    20160728 -- Add Extend
 # REFERENCES
 ##########################################################################################################
 from CFMD2Txt import sPointForceData
@@ -19,6 +19,7 @@ from CFMD2Txt import PointForceData2Txt
 import shapefile
 import time 
 import datetime 
+import pandas
 import os.path
 import sys
 sys.path.append('GetDate')
@@ -31,14 +32,24 @@ if __name__ == '__main__':
     start = time.clock()
     # new object
     spointForceData            =   sPointForceData() 
-    spointForceData.startdate  =   datetime.datetime(1988,1,1)
-    spointForceData.enddate    =   datetime.datetime(1997,1,1)
+    spointForceData.startdate  =   datetime.datetime(1983,1,1)
+    spointForceData.enddate    =   datetime.datetime(2013,1,1)
+
+    isExtend                   = False;
+    #  define data datetime 20160728
+    dataMindatetime            =   datetime.datetime(1979,1,1)
+    if(spointForceData.startdate < dataMindatetime):
+        isExtend              = True;
+        dataExtend            = list(pandas.date_range(start = spointForceData.startdate, \
+                                                  end = dataMindatetime,freq='3H').to_pydatetime())
+        del dataExtend[-1]      #dee  the last one  
+   
     #update 1 update soil veg and lon lat
-    sfPoint   = shapefile.Reader("E:/worktemp/Permafrost(MAPPING)/Data/Point/Group1996/Test.shp")
+    sfPoint   = shapefile.Reader("F:/worktemp/Permafrost(Change)/Data/Point/gaize.shp")
     #define vars
-    ncFilePath         =   "D:\\workspace\\Data\\CFMD(QTP)\\Data_forcing_03hr_010deg_Unzip\\"
-    txtFilePath        =   "E:\\worktemp\\Permafrost(MAPPING)\\QTP1996(TXT)\\"
-    strncResPath       =   "E:\\worktemp\\Permafrost(MAPPING)\\QTP1996(NC)\\"
+    ncFilePath         =   "D:\\Data\\CFMD(QTP)\\Data_forcing_03hr_010deg_Unzip\\"
+    txtFilePath        =   "F:\\QTP(TXT)\\"
+    strncResPath       =   "F:\\QTP(NC)\\"
     spointForceData.output_dir = strncResPath
 
     #get all files
@@ -74,6 +85,16 @@ if __name__ == '__main__':
                                               spointForceData.Longitude,
                                               ncAllFilePathlist)
         spointForceData.CFMDData =  updateCFMDData.getCFMDData(varTypeData)
+
+        # Extend CFMD  (for  spin-up)  20160728
+        if(isExtend):
+            lengthExtend                = len(dataExtend)
+            extendCFMDData              = zip(*spointForceData.CFMDData[0:lengthExtend])
+            extendCFMDData[0]           = dataExtend;
+            extendCFMDData              = zip(*extendCFMDData)
+            spointForceData.CFMDData    = extendCFMDData + spointForceData.CFMDData
+
+
         #write files
         ptForceData2Txt    =   PointForceData2Txt(outputTxtPathName)
         ptForceData2Txt.writePointData2Txt(spointForceData)

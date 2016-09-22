@@ -43,7 +43,28 @@ class cForceTxtUpdate(object):
             lines[updateLine -1]  =  newLine
 
             txtFile.seek(0)
+            txtFile.truncate()
             txtFile.writelines(lines)
+            linecache.clearcache()
+
+    def updateDeepTemperature(self):
+        # get array of lines
+        with open(self.strtxtFilePath, 'r+') as txtFile:
+            lines                 =  txtFile.readlines()
+            #... deepSoilTemperature
+            updateLine            =  20   # from 1 ~  not 0
+            lineTxt               =  linecache.getline(self.strtxtFilePath, updateLine)
+            lineTxts              =  lineTxt.split('=')
+            lineTxtTemp           =  float(lineTxts[1]) + 2.15
+            newLine               =  ' Deep_Soil_Temperature = {}\n'.format(lineTxtTemp) 
+            lines[updateLine -1]  =  newLine
+            txtFile.seek(0)
+            txtFile.truncate()
+            txtFile.writelines(lines)  
+            del lines[:]
+            del lines
+            linecache.clearcache()   #very important 
+
     # update Skin temperature
     def updateSkinTemp(self,skintemp): 
         # get array of lines

@@ -8,8 +8,8 @@
 #   wuxb
 
 # REVISION HISTORY
-#    20151007 -- Initial version created and posted online
-#
+#    20151007   -- Initial version created and posted online
+#    20160725   -- Add optParmType
 # REFERENCES
 ##########################################################################################################
 
@@ -29,7 +29,7 @@ from NcFileResPostProcess import NcFileProcess
 ##################################################################################### 
 class spot_setup(object):
     """description of class"""
-    def __init__(self,nalyer = None,soilType = None,peType = None):
+    def __init__(self,nalyer = None,soilType = None,peType = None,optParmType = None, varTimeDataArray = None):
         analysestart   = datetime(2007,4,1)
         analysesend    = datetime(2009,12,31)
         if nalyer is None:
@@ -38,38 +38,54 @@ class spot_setup(object):
             soilType = 3
         if peType is None:
             peType = "STC"
-        self.noahmodel = NoahModel(analysestart,analysesend,nalyer,soilType,peType)
+        if optParmType is None:
+            optParmType = 1
+        self.optParmType    = optParmType   # suggest parameter type    # general parm   20160725
+        self.noahmodel = NoahModel(analysestart,analysesend,nalyer,soilType,peType,optParmType,varTimeDataArray)
     def parameters(self):
         pars = []   #distribution of random value    #name  #stepsize# optguess
-        pars.append((np.random.uniform(low=0.10,high=5),         'BB',      0.01,  2.79))  
-        pars.append((np.random.uniform(low=0.00,high=0.1),        'DRYSMC',  0.001, 0.006)) 
-        pars.append((np.random.uniform(low=0.10,high=0.45),       'MAXSMC',  0.01,  0.28)) 
-        pars.append((np.random.uniform(low=0.00,high=0.35),       'REFSMC',  0.01,  0.17)) 
-        pars.append((np.random.uniform(low=0.00,high=0.9),        'SATPSI',  0.001,  0.009)) 
-        pars.append((np.random.uniform(low=1.0E-5,high=0.0),     'SATDK',   0.001,  1.41E-2)) 
-        pars.append((np.random.uniform(low=1.0E-5,high=0.0),     'SATDW',   0.001,  1.36E-2)) 
-        pars.append((np.random.uniform(low=0.00,high=0.1),        'WLTSMC',  0.001, 0.006)) 
-        pars.append((np.random.uniform(low=0.00,high=1.0),        'QTZ',     0.01,  0.07))  
+        if(self.optParmType == 1):
+            #pars.append((np.random.uniform(low=0.5,high=2.5),         'BB',      0.01,  1.58))  
+            #pars.append((np.random.uniform(low=0.00,high=0.1),       'DRYSMC',  0.001, 0.006)) 
+            #pars.append((np.random.uniform(low=0.18,high= 0.38),      'MAXSMC',  0.01,  0.262)) 
+            #pars.append((np.random.uniform(low=0.00,high=0.35),      'REFSMC',  0.01,  0.17)) 
+            #pars.append((np.random.uniform(low=0.00,high=0.9),       'SATPSI',  0.001,  0.009)) 
+            pars.append((np.random.uniform(low=0.5E-6,high=1.6E-4),     'SATDK',   0.11E-5,  1.19E-4)) 
+            #pars.append((np.random.uniform(low=0.1E-3,high=0.9E-5),     'SATDW',   0.405E-6, 0.509E-4)) 
+            #pars.append((np.random.uniform(low=0.00,high=0.1),       'WLTSMC',  0.001, 0.006)) 
+            #pars.append((np.random.uniform(low=0.10,high=0.99),       'QTZ',     0.01,  0.95))  
+        if(self.optParmType  == 2):   # general parm   20160725
+            pars.append((np.random.uniform(low=-4,high=-1),     'SBETA_DATA',   0.1,  -2)) 
+            pars.append((np.random.uniform(low=0.2,high=4),     'FXEXP_DATA',   0.1,  2)) 
+            pars.append((np.random.uniform(low=0.5,high=5),     'REFKDT_DATA',   0.1,  3)) 
+            pars.append((np.random.uniform(low=0.1,high=0.25),   'FRZK_DATA',   0.01,  0.15)) 
+
+
         dtype=np.dtype([('random', '<f8'), ('name', '|S30'),('step', '<f8'),('optguess', '<f8')])
         return np.array(pars,dtype=dtype)
             
     def simulation(self,vector):
-        dictPara    = {"BB":vector[0],"DRYSMC":vector[1],"MAXSMC":vector[2],"REFSMC":vector[3],"SATPSI":vector[4],  \
-                       "SATDK":vector[5],"SATDW":vector[6],"WLTSMC":vector[7],"QTZ":vector[8] }
-        #dictPara    = {"BB":vector[0],"DRYSMC":vector[1],"REFSMC":vector[2],"SATPSI":vector[3],"SATDK":vector[4],  \
-        #               "SATDW":vector[5],"WLTSMC":vector[6]}
-        #dictPara    = {"BB":vector[0],"MAXSMC":vector[1],"SATPSI":vector[2],"SATDK":vector[3],"SATDW":vector[4]}
-        #dictPara    = {"QTZ":vector[0]}
+        dictPara = {}
+        if(self.optParmType == 1):
+            dictPara    = {"SATDK":vector[0]}
+            #dictPara    = {"BB":vector[0],"DRYSMC":vector[1],"REFSMC":vector[2],"SATPSI":vector[3],"SATDK":vector[4],  \
+            #               "SATDW":vector[5],"WLTSMC":vector[6]}
+            #dictPara    = {"BB":vector[0],"MAXSMC":vector[1],"SATPSI":vector[2],"SATDK":vector[3],"SATDW":vector[4]}
+            #dictPara    = {"QTZ":vector[0]}
+        if(self.optParmType == 2):
+            dictPara    = {"SBETA_DATA":vector[0],"FXEXP_DATA":vector[1],"REFKDT_DATA":vector[2],"FRZK_DATA":vector[3]}
+
         simulations = self.noahmodel._run(dictPara)
+
         return simulations
  
     def evaluation(self):
         observations= self.noahmodel.observations
         return observations
 
-    def likelihood(self,simulation,evaluation):
-        likelihood= -spotpy.likelihoods.rmse(simulation,evaluation)
-        return likelihood
+    def objectivefunction(self,simulation,evaluation):
+        objectivefunction= -spotpy.objectivefunctions.rmse(simulation,evaluation)
+        return objectivefunction
 ##################################################################################### 
 # 
 ##################################################################################### 
@@ -80,22 +96,28 @@ class NoahModel(object):
            analysestart: e.g. datetime(1999,1,1)
     Output: Initialised model instance with forcing data (climate) and evaluation data (soil temperature)
     '''
-    def __init__(self,analysestart,analysesend,nlayer,soilType,peType):
-        self.analysestart = analysestart
-        self.analysesend  = analysesend
-        self.nlayer       = nlayer
-        self.soilType     = soilType
-        self.peType       = peType
+    def __init__(self,analysestart,analysesend,nlayer,soilType,peType,optParmType,varTimeDataArray):
+        self.analysestart     = analysestart
+        self.analysesend      = analysesend
+        self.nlayer           = nlayer
+        self.soilType         = soilType
+        self.peType           = peType
+        self.optParmType      = optParmType
+        self.varTimeDataArray = varTimeDataArray
         ###########################################################################
         #
-        ###################### Init ####################################   
-        self.paraUpdate    =  ParameterUpdate("E:\\worktemp\\Permafrost(NOAH)\\Data\\Run\\SOILPARM.TBL")
-        self.ncFileProcess =  NcFileProcess("E:\\worktemp\\Permafrost(NOAH)\\Data\\Run\\OUTPUT.nc");
+        ###################### Init ####################################  
+        if(self.optParmType == 1): 
+            self.paraUpdate    =  ParameterUpdate(optParmType,"D:\\worktemp\\Permafrost(NOAH)\\Data\\Run(S)\\SOILPARM.TBL")
+        if(self.optParmType == 2):   # general parm   20160725
+            self.paraUpdate    =  ParameterUpdate(optParmType,"F:\\worktemp\\Permafrost(Change)\\Run(S)\\GENPARM.TBL")
+
+        self.ncFileProcess =  NcFileProcess("F:\\worktemp\\Permafrost(Change)\\Run(S)\\TGLCH.nc");
         ###########################################################################
         #
         ###################### Evaluation data ####################################    
         #just for test
-        readObsData        =  ReadObsData("E:\\worktemp\\Permafrost(NOAH)\\Data\\TGLData2009.xls");
+        readObsData        =  ReadObsData("F:\\worktemp\\Permafrost(Change)\\Run(S)\\TGLData2009.xls");
         if (peType == "STC"):
             getnlayer          =  self.nlayer - 1
             obsDataRes         =  readObsData.getObsData(getnlayer)
@@ -125,15 +147,20 @@ class NoahModel(object):
         #WLTSMC1=MAXSMC*(200./SATPSI)**(-1./BB)    (Wetzel and Chang, 198
         #WLTSMC=WLTSMC1-0.5*WLTSMC1
 
-        #1 update  SOILPARM.TBL
-        self.paraUpdate.updateSoilParameterFile(self.soilType,dictPara)
+        #1 update  SOILPARM.TBL or Other
+        self.paraUpdate.updateParameterFile(dictPara,self.soilType)
+
         ##2 run model
-        os.chdir('E:\\worktemp\\Permafrost(NOAH)\\Data\\Run\\')
+        os.chdir('F:\\worktemp\\Permafrost(Change)\\Run(S)\\')
         command       =  'simple_driver.exe TGLCH.txt'
         subprocess.call(command, shell=True)  #call 7z command
         # 3 get model res return
         getnlayer     =   self.nlayer - 1
-        modelRes      =   self.ncFileProcess.getNcDataByDay(self.peType,getnlayer,self.analysestart,self.analysesend)
+        modelRes      =   self.ncFileProcess.getNcDataByDay(self.peType,
+                                                            getnlayer,
+                                                            self.varTimeDataArray,
+                                                            self.analysestart,
+                                                            self.analysesend)
         if (self.peType == "STC"):
             return  map(lambda x:x-273.15,modelRes)
         if (self.peType == "SH2O"):

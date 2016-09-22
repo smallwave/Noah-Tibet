@@ -18,6 +18,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import operator
+import datetime
+
 
 class CalPermafrostProperties(object):
     """description of class"""
@@ -37,18 +39,92 @@ class CalPermafrostProperties(object):
                 break
         return listRe
 
+    #2016.6.6
+    def getSubMax4AltOfSeasonally(self,maxList):
+        listRe = []
+        isAdd  = True
+        for val in maxList:
+            if (isAdd):
+                if(val >0):
+                    isAdd = False
+                listRe.append(val)
+            else:
+                break
+        return listRe
+
+
     #2015.12.31 
-    def IsPermafrost(self,varTimeDataArray):
+    def IsPermafrost(self,varTimeDataArray,startTime = None, endTime = None):
+        if startTime is None:
+            startTime       = datetime.datetime(2010,1,1)
+        if endTime is None:
+            endTime         = datetime.datetime(2010,12,31)
+
         ncFileProcess       =  NcFileProcess(self.strncDataPath)
-        alllayerMonthMean   =  ncFileProcess.getAllLayerMeanTempByMonth(5,varTimeDataArray)
+        alllayerMonthMean   =  ncFileProcess.getAllLayerMeanTempByMonth(5,varTimeDataArray,startTime,endTime)
+        #alllayerDay         =  ncFileProcess.getAllLayerMaxMinTempByDay(5,varTimeDataArray)
         maxList             =  alllayerMonthMean[0]
         minList             =  alllayerMonthMean[1] 
-        if (min(maxList) < 273.15):  # max min <0
+        self.IdentificationPermafrost(maxAllLevelList,minAllLevelList)
+
+    #2016.9.12
+    def IdentificationPermafrost(self,maxAllLevelList,minAllLevelList):
+        if (min(maxAllLevelList) < 273.05):  # max min <0
             return 1     #permafrost
-        if (min(minList) < 273.15):  # min min <0
+        if (min(minAllLevelList) < 273.05):  # min min <0
             return 2     #Seasonal frozen soil
         else:
             return 3     #no frozen soil
+
+    # 2016.8.5
+    def StaPermafrostByYear(self,varTimeDataArray,year = 2010):
+        startTime       = datetime.datetime(year,1,1)
+        endTime         = datetime.datetime(year,12,31)
+        if(self.IsPermafrost(varTimeDataArray,startTime,endTime) == 1):
+            return 1
+        return 0
+
+    # 2016.9.12
+    def IsPermafrostByYear(self,varTimeDataArray,startYear, endYear):
+        startTime           =  datetime.datetime(startYear,1,1)
+        endTime             =  datetime.datetime(endYear,12,31)
+        ncFileProcess       =  NcFileProcess(self.strncDataPath)
+        allLayerMonthTemp   =  ncFileProcess.getAllLayerMeanTempByYearMonth(5,varTimeDataArray,startTime,endTime)
+        # first get layer
+        allLayerListMax     =  []
+        allLayerListMin     =  []
+        for layerMonthTemp in allLayerMonthTemp:
+            layerYearMonthTemp = list(zip(*[iter(layerMonthTemp)]*12))
+            maxValue             =  map(max, layerYearMonthTemp)  
+            minValue             =  map(min, layerYearMonthTemp)    
+            allLayerListMax.append(maxValue)           #by  layer 
+            allLayerListMin.append(minValue)
+
+        allLayerListMax =  zip(*allLayerListMax)   #by  year
+        allLayerListMin =  zip(*allLayerListMin)
+        # permafrost 
+        nYear = endYear-startYear;
+        strType = " "
+        for i in range(0,nYear):
+            nType = self.IdentificationPermafrost(allLayerListMax[i],allLayerListMin[i])
+            strType = strType+ " "+ str(nType)
+        return strType
+
+
+
+
+
+            
+
+
+
+
+
+
+
+
+
+
 
     #2015.12.18
     def CalCalPermafrostALT(self,varTimeDataArray,layerList = None):
@@ -79,6 +155,32 @@ class CalPermafrostProperties(object):
         #plt.plot(maxList,layerList,'o', x_new, y_new)
         #plt.xlim([maxList[-1]-2, maxList[0] + 2 ])
         #plt.show()
+    #2016.6.6
+    def CalCalPermafrostALTOfSeasonally(self,varTimeDataArray,layerList = None):
+        if layerList is None:
+           layerList        = [-0.045,-0.091,-0.166,-0.289,-0.493,-0.829,-1.383,-2.296,-3.2,-4.2,-5.2,-6.2,\
+                               -7.2,-8.2,-9.2,-11.2,-13.2,-15.2]
+        lenDepths           =  len(layerList)
+        ncFileProcess       =  NcFileProcess(self.strncDataPath)
+        maxList =[]
+        alllayerMonthMean   =  ncFileProcess.getAllLayerMeanTempByMonth(0,varTimeDataArray)
+        minList             =  alllayerMonthMean[1]
+        minList  = map(lambda x:x-273.15,minList)
+        
+        ALTINFO  = 15.0
+        if min(minList) > 0:
+            ALTINFO = 0.0
+        if max(minList) < 0:
+            ALTINFO = -20.0
+        elif minList[0] < 0:
+            reList = self.getSubMax4AltOfSeasonally(minList)
+            nLen   = len(reList)
+            InterFun = interp1d( reList, layerList[0:nLen])
+            ALTINFO  = InterFun(0.0)
+        FALTINFO  = round(float(ALTINFO),2)
+        print FALTINFO
+        return FALTINFO
+
 
     #2016.1.30
     def CalCalPermafrostMAGT(self,varTimeDataArray,layerList = None):
@@ -142,3 +244,7 @@ class CalPermafrostProperties(object):
             ICE  = 0.0
         ICE  = round(float(ICE),2)
         return ICE
+
+    #2016.8.5
+    def StaPermafrostCount(self,varTimeDataArray):
+        print "ok"

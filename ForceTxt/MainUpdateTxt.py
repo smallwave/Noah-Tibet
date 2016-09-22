@@ -11,7 +11,6 @@
 #
 # REFERENCES
 ##########################################################################################################
-
 import os
 import sys
 import formic
@@ -22,7 +21,7 @@ from UpdateForceTxt import cForceTxtUpdate
 ###################################################################################
 if __name__ == '__main__':
 
-    strtxtForcePath = "E:\\worktemp\\Permafrost(MAPPING)\\XIKUNLUN(TXT)\\"
+    strtxtForcePath = "F:\\worktemp\\Permafrost(Change)\\Work\\QTP(TXT)\\"
     #strncResPath    = "E:\\worktemp\\Permafrost(MAPPING)\\XIKUNLUN(NC)\\"
     #1 run model
     fileset = formic.FileSet(include="**/*.txt", directory= strtxtForcePath)
@@ -34,5 +33,5 @@ if __name__ == '__main__':
         print "################################################################"
         # update output path
         forceTxtUpdate  =  cForceTxtUpdate(file_name)
-        forceTxtUpdate.updateSfcdif_OptionByNDVI()
+        forceTxtUpdate.updateDeepTemperature()
         # update temp

@@ -19,7 +19,9 @@ import linecache
 import shlex
 import shapefile
 import glob
+import shutil
 from dbfpy import dbf
+import numpy as np
 from CalPermafrost import *
 sys.path.append('GetDate')
 from getNcFileDate import getSingleNcFileDate
@@ -30,12 +32,36 @@ import shutil
 class cBatchCells(object):
      def __init__(self):
          print "call Batch cells"
+     #2016.9.1
+     def CheckForceTxt(self,strtxtForcePathDestination,strtxtForcePathSource):
+        #1 run model
+        fileset = formic.FileSet(include="**/*.txt", directory=strtxtForcePathSource)
+        nFile   = 0 # print process file ID
+        for file_name in fileset:
+            nFile+=1
+            print "Current file is : " + file_name + "; It is the " + str(nFile)
+            print "################################################################"
+            with open(file_name, 'r+') as txtFile:
+                lines                 =  txtFile.readlines()
+                #... deepSoilTemperature
+                updateLine            =  46   # from 1 ~  not 0
+                lineTxt               =  linecache.getline(file_name, updateLine)
+                lineTxts              =  lineTxt.split(' ')
+                lineTxts              =  ' '.join(lineTxts).split()
+                lineTxtTemp           =  float(lineTxts[8])
+                if(lineTxtTemp < 0 or lineTxtTemp > 105):
+                    src_file = file_name
+                    shutil.copy(src_file, strtxtForcePathDestination)
+                del lines[:]
+                del lines
+                linecache.clearcache()   #very important 
+
      #2015.12.31
      def RunNoahModel(self,strtxtForcePathIn):
         #1 run model
         fileset = formic.FileSet(include="**/*.txt", directory=strtxtForcePathIn)
         nFile   = 0 # print process file ID
-        os.chdir('E:\\worktemp\\Permafrost(MAPPING)\\Run(M)\\')
+        os.chdir('F:\\worktemp\\Permafrost(Change)\\Run(S)\\')
         outputPath = None
         for file_name in fileset:
             nFile+=1
@@ -48,6 +74,7 @@ class cBatchCells(object):
                     lineTxt     =  linecache.getline(file_name, updateLine)
                     lineTxtS    =  lineTxt.split("=")  
                     outputPath  =  lineTxtS[1].strip()[1:-1]
+                    linecache.clearcache()   #very important 
             InputFileDir,InputFile   = os.path.split(file_name)
             filename, file_extension = os.path.splitext(InputFile)
             items  = [outputPath,filename,".nc"]
@@ -78,7 +105,7 @@ class cBatchCells(object):
             ncFileProcess         =  NcFileProcess(file_name)
             alllayerMonthMean     =  ncFileProcess.getAllLayerMeanTempByMonth(5,varTimeDataArray)
             maxListValue          =  max(alllayerMonthMean[0])
-            if (maxListValue < 100) or  (maxListValue > 400):
+            if (maxListValue < 250) or  (maxListValue > 310):
                 InputFileDir,InputFile   = os.path.split(file_name)
                 filename, file_extension = os.path.splitext(InputFile)
                 strFileFix               = filename+".txt"
@@ -87,7 +114,7 @@ class cBatchCells(object):
                     print "Error there have no " + srcfile
                     os.system("pause")
                     exit(0)
-                dstdir                   =  os.path.join("E:/worktemp/Permafrost(MAPPING)/Run(M)/", strFileFix)
+                dstdir                   =  os.path.join("F:\\worktemp\\Permafrost(Change)\\Run(S)\\", strFileFix)
                 shutil.copy(srcfile, dstdir)
                 
      #2015.12.31
@@ -149,6 +176,9 @@ class cBatchCells(object):
             if calType == "ALT":
                 calPermafrostFeature        =  calPermafrost.CalCalPermafrostALT(varTimeDataArray)
                 rec[calType]                =  calPermafrostFeature
+            elif calType == "ALTSEA":
+                calPermafrostFeature        =  calPermafrost.CalCalPermafrostALTOfSeasonally(varTimeDataArray)
+                rec[calType]                =  calPermafrostFeature
             elif calType == "MAGT":
                 calPermafrostFeature        =  calPermafrost.CalCalPermafrostMAGT(varTimeDataArray)
                 rec[calType]                =  calPermafrostFeature[0]
@@ -156,6 +186,7 @@ class cBatchCells(object):
             elif calType == "ICE":
                 calPermafrostFeature        =  calPermafrost.CalCalPermafrostICE(varTimeDataArray)
                 rec[calType]                =  calPermafrostFeature
+
             rec.store()
             #del rec
         db.close()
@@ -165,11 +196,81 @@ class cBatchCells(object):
          self.RunCalPermafrostFeature(strPointShpPath,strNcFilePath,"ALT")
          print "ALT  is ok !!!!!"
 
+     #2016.6.6
+     def RunCalAltOfSeasonally(self,strPointShpPath,strNcFilePath):
+         self.RunCalPermafrostFeature(strPointShpPath,strNcFilePath,"ALTSEA")
+         print "ALT  is ok Seasonally!!!!!"
+
      #2015.1.29
      def RunCalMAGT(self,strPointShpPath,strNcFilePath):
          self.RunCalPermafrostFeature(strPointShpPath,strNcFilePath,"MAGT")
          print "MAGT  is ok !!!!!"
 
+     #2015.1.30
      def RunCalICE(self,strPointShpPath,strNcFilePath):
          self.RunCalPermafrostFeature(strPointShpPath,strNcFilePath,"ICE")
          print "ICE  is ok !!!!!"
+
+     #2016.8.5
+     def RunStaPermafrostCount(self,strncPathIn,strOutputTxtIn,startYear=1983,endYear=2012):
+        #1 run model
+        fileset = formic.FileSet(include="**/*.nc", directory=strncPathIn)
+        nFile   = 0 # print process file ID
+        # 
+        varTimeDataArray  =  None;
+        countPermafrost   = np.zeros(endYear-startYear)
+        with open(strOutputTxtIn, "w") as text_file:
+            for file_name in fileset:
+                nFile+=1
+                print "################################################################"
+                print "Current file is : " + file_name + "; It is the " + str(nFile)
+                print "################################################################"
+                InputFileDir,InputFile   = os.path.split(file_name)
+                filename, file_extension = os.path.splitext(InputFile)
+                FileNameS                = filename.split("_")  
+                calPermafrost  =  CalPermafrostProperties(file_name)
+                #get date info
+                if (varTimeDataArray is None):
+                    getNcFileDate     =   getSingleNcFileDate(file_name)
+                    varTimeDataArray  =   getNcFileDate.getNcFileDate("Times","Noah")
+                #set array index
+                index = 0
+                for year in range(startYear,endYear):
+                    nType   =  calPermafrost.StaPermafrostByYear(varTimeDataArray,year)
+                    countPermafrost[index]+=nType
+                    index =index+1
+            #write reslut
+            index =0
+            for year in range(startYear,endYear):
+                text_file.write(str(year) + " " + str(countPermafrost[index]) +"\n")
+                index = index + 1
+            print "File : " + strOutputTxtIn + " write is ok !!!!!"
+
+     #20160912
+     def RunCalPermafrostChange(self,strncPathIn,strOutputTxtIn,startYear=1983,endYear=2012):
+        #1 run model
+        fileset = formic.FileSet(include="**/*.nc", directory=strncPathIn)
+        nFile   = 0 # print process file ID
+        # 
+        varTimeDataArray  =  None;
+        with open(strOutputTxtIn, "w") as text_file:
+            for file_name in fileset:
+                nFile+=1
+                print "################################################################"
+                print "Current file is : " + file_name + "; It is the " + str(nFile)
+                print "################################################################"
+                InputFileDir,InputFile   = os.path.split(file_name)
+                filename, file_extension = os.path.splitext(InputFile)
+                FileNameS                = filename.split("_")  
+                calPermafrost  =  CalPermafrostProperties(file_name)
+                #get date info
+                if (varTimeDataArray is None):
+                    getNcFileDate     =   getSingleNcFileDate(file_name)
+                    varTimeDataArray  =   getNcFileDate.getNcFileDate("Times","Noah")
+
+                text_file.write(FileNameS[0]+" " + FileNameS[1])
+
+                strTypeList   =  calPermafrost.IsPermafrostByYear(varTimeDataArray,startYear, endYear)
+                text_file.write(" " + str(strTypeList))
+                text_file.write("\n")
+            print "File : " + strOutputTxtIn + " write is ok !!!!!"

@@ -15,11 +15,16 @@ import linecache
 
 class ParameterUpdate(object):
     """description of class"""
-    def __init__(self,strsoilFilePath):
+    def __init__(self,optParmType,strsoilFilePath):
         self.strsoilFilePath    =  strsoilFilePath;
-        self.soilParaList       =  ["BB","DRYSMC","F11","MAXSMC",
+        if(optParmType == 1):
+            self.soilParaList   =  ["BB","DRYSMC","F11","MAXSMC",
                                     "REFSMC","SATPSI","SATDK","SATDW",
-                                    "WLTSMC","QTZ"]   
+                                    "WLTSMC","QTZ"] 
+        if(optParmType == 2):
+            self.soilParaList   =  ["SBETA_DATA","FXEXP_DATA","REFKDT_DATA","FRZK_DATA"] 
+
+        self.optParmType        = optParmType
     # replace txtfile
     def replace_line(self,lineTxt,dictPara):
         lineTxts       = lineTxt.split(',')
@@ -34,7 +39,7 @@ class ParameterUpdate(object):
                     lineTxts[8],lineTxts[9],lineTxts[10],lineTxts[11])
         return newLine
     # update txtfile        
-    def updateSoilParameterFile(self,soilType,dictPara):
+    def updateSoilParameterFile(self,dictPara,soilType):
         # get array of lines
         with open(self.strsoilFilePath, 'r+') as soilTxtFile:
             lines                 =  soilTxtFile.readlines()
@@ -45,6 +50,36 @@ class ParameterUpdate(object):
             lines[updatenLine -1] = newLine
             soilTxtFile.seek(0)
             soilTxtFile.writelines(lines)
+
+    def updateGeneralParameterFile(self,dictPara):
+        # get array of lines
+        with open(self.strsoilFilePath, 'r+') as soilTxtFile:
+            lines                 =  soilTxtFile.readlines()
+            for key in dictPara.keys():
+                index  = self.soilParaList.index(key)
+                sKey   = dictPara[key]
+                strOut = str(sKey) +"\n"
+                if(index == 0):   # SBETA_DATA
+                    lines[13] = strOut
+                elif(index == 1): # FXEXP_DATA
+                    lines[15] = strOut
+                elif(index == 2): # REFKDT_DATA
+                    lines[23] = strOut
+                elif(index == 3): # FRZK_DATA
+                    lines[25] = strOut
+
+            #... Perform whatever replacement you'd like on lines
+            soilTxtFile.seek(0)
+            soilTxtFile.writelines(lines)
+            
+
+    def updateParameterFile(self,dictPara,soilType = None):
+        if(self.optParmType == 1):
+            self.updateSoilParameterFile(dictPara,soilType)
+        if(self.optParmType == 2):
+            self.updateGeneralParameterFile(dictPara)
+
+
            
 
 

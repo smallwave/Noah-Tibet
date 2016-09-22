@@ -21,6 +21,10 @@ import matplotlib.patches as mpatches
 from matplotlib.dates import YearLocator, MonthLocator, DayLocator, DateFormatter
 import datetime
 import pandas
+sys.path.append('GetDate')
+from getNcFileDate import getSingleNcFileDate
+import matplotlib.lines as mlines
+
 
 def mse(evalution,simulation):
     """
@@ -125,13 +129,13 @@ def correlationcoefficient(evalution,simulation):
     else:
         return "Error: evalution and simulation lists does not have the same length."
 
-def getModelData(ncFileProcess,nlayer,modelAttr = "SH2O",startTime = None,endTime = None):
+def getModelData(ncFileProcess,nlayer,varTimeDataArray,modelAttr = "SH2O",startTime = None,endTime = None):
     nlayer = nlayer - 1
     if startTime is None:
         startTime = datetime.datetime(2007,4,1)
     if endTime is None:
         endTime   = datetime.datetime(2009,12,31)
-    modelRes = ncFileProcess.getNcDataByDay(modelAttr,nlayer,startTime,endTime)
+    modelRes = ncFileProcess.getNcDataByDay(modelAttr,nlayer,varTimeDataArray,startTime,endTime)
     if (modelAttr == "STC"):
          modelRes = map(lambda x:x - 273.15,modelRes)
     if (modelAttr == "SH2O"):
@@ -155,10 +159,10 @@ def updateAx_1(ax,modelRes,Title):
     #    tick.label.set_rotation('vertical')
 
 def updateAx_2(ax,modelRes,obsDataRes,Title,dateIdx = None,yLabel = "Temperature(C)"):
-    ax.plot(dateIdx,obsDataRes,'r',label='Obs')
+    ax.plot(dateIdx,obsDataRes,'r.-',label='Obs')
     ax.plot(dateIdx,modelRes,'b',label='Model')
     ax.set_title(Title)
-    ax.set_ylabel("Temperature(C)")
+    ax.set_ylabel(yLabel)
     ax = formatAxticks(ax)
     #for tick in ax.xaxis.get_major_ticks():
     #    tick.label.set_fontsize(8)
@@ -206,14 +210,14 @@ def updateLastAx(ax,strText):
 def formatAxticks(ax):
     days     = DayLocator()    # every month
     months   = MonthLocator()  # every month
-    months.MAXTICKS = 2000
-    yearsFmt = DateFormatter('%m/%Y')
+    months.MAXTICKS = 3000
+    yearsFmt = DateFormatter('%d/%m/%Y')
     ax.xaxis.set_major_locator(months)
     ax.xaxis.set_minor_locator(days)
     ax.xaxis.set_major_formatter(yearsFmt)
     ax.autoscale_view()
     ticks = ax.get_xticks()
-    n = len(ticks)//6
+    n = len(ticks)/4
     ax.set_xticks(ticks[::n])
     return ax
 
@@ -236,14 +240,15 @@ if __name__ == '__main__':
     #13  2.8   Y  ax12
     #14  3.6
     '''
-    plotType  =  1  # 1 temp 2 mos 
+    plotType  =  4  # 2 temp 2 mos  3 paper map mosture  4 paper map temp
     plotCom   =  1  # 
     layerNameList = ["0.05m","0.1m","0.2m","0.5m","0.7m","0.9m","1.05m","1.4m","1.75m","2.1m","2.45m","2.8m",\
                      "3.6m","4.5m","5.5m","6.5m","7.5m","8.5m","9.5m","11m","13m","15m"]
 
-    startTime = datetime.datetime(2007,4,1)
-    endTime   = datetime.datetime(2009,12,31)
-    dataIdxs  = pandas.date_range(start = startTime,end = endTime)
+    startTime  = datetime.datetime(2007,4,1)
+    calEndTime = datetime.datetime(2009,12,31)
+    endTime    = datetime.datetime(2010,12,31)
+    dataIdxs   = pandas.date_range(start = startTime,end = endTime)
 
     #temp
     if plotType == 1:
@@ -257,11 +262,16 @@ if __name__ == '__main__':
         nLayerListTempObs   = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22] 
         #com 1
         if plotCom == 1:
-            ncFileProcess = NcFileProcess("E:\\worktemp\\Permafrost(NOAH)\\Data\\Run(S)\\TGLCH.nc")
-            readObsData   = ReadObsData("E:\\worktemp\\Permafrost(NOAH)\\Data\\TGLData2009.xls")
+            ncFileProcess = NcFileProcess("D:\\worktemp\\Permafrost(NOAH)\\Data\\Run(S)\\TGLCH.nc")
+            readObsData   = ReadObsData("D:\\worktemp\\Permafrost(NOAH)\\Data\\TGLData2009.xls")
+
+            #get varTimeDataArray
+            getNoahDateAll    =   getSingleNcFileDate("D:\\worktemp\\Permafrost(NOAH)\\Data\\Run(S)\\TGLCH.nc")
+            varTimeDataArray  =   getNoahDateAll.getNcFileDate("Times","Noah")
+
             for i in range(0,22):
                 modelLayer = nLayerListSim[i]
-                modelRes   = getModelData(ncFileProcess,modelLayer,"STC",startTime,endTime)
+                modelRes   = getModelData(ncFileProcess,modelLayer,varTimeDataArray,"STC",startTime,endTime)
                 obsLayer   = nLayerListTempObs[i]
                 obsDataRes = getObsData(readObsData,obsLayer)
                 updateAx_2(axlist[i],modelRes,obsDataRes,layerNameList[i],dataIdxs)
@@ -270,6 +280,9 @@ if __name__ == '__main__':
             blue_patch = mpatches.Patch(color='blue', label='Model')
             plt.legend(handles=[red_patch,blue_patch])
             f.autofmt_xdate()
+
+        plt.show()
+
         # com 3
         if plotCom == 3:
             ncFileProcess1 = NcFileProcess("E:\\worktemp\\Permafrost(NOAH)\\Data\\Run\\OUTPUT(J75).nc")
@@ -300,13 +313,19 @@ if __name__ == '__main__':
         #layer info
         nLayerListSim       = [2,3,4,5,6,7,8,9,10,11,12,13]
         nLayerListMosObs    = [23,24,25,26,27,28,29,30,31,32,33,34]
-         #com 1
+
+        #com 1
         if plotCom == 1:
-            ncFileProcess  = NcFileProcess("E:\\worktemp\\Permafrost(NOAH)\\Data\\Run\\OUTPUT.nc")
-            readObsData    = ReadObsData("E:\\worktemp\\Permafrost(NOAH)\\Data\\TGLData2009.xls")
+            ncFileProcess  = NcFileProcess("D:\\worktemp\\Permafrost(NOAH)\\Data\\Run(S)\\TGLCH.nc")
+            readObsData    = ReadObsData("D:\\worktemp\\Permafrost(NOAH)\\Data\\TGLData2009.xls")
+
+            #get varTimeDataArray
+            getNoahDateAll    =   getSingleNcFileDate("D:\\worktemp\\Permafrost(NOAH)\\Data\\Run(S)\\TGLCH.nc")
+            varTimeDataArray  =   getNoahDateAll.getNcFileDate("Times","Noah")
+
             for i in range(0,12):
                 modelLayer = nLayerListSim[i]
-                modelRes   = getModelData(ncFileProcess,modelLayer,"SH2O")
+                modelRes   = getModelData(ncFileProcess,modelLayer,varTimeDataArray,"SH2O",startTime,endTime)
                 obsLayer   = nLayerListMosObs[i]
                 obsDataRes = getObsData(readObsData,obsLayer,"MOS")
                 updateAx_2(axlist[i],modelRes,obsDataRes,layerNameList[i],dataIdxs,"%")
@@ -316,12 +335,317 @@ if __name__ == '__main__':
             blue_patch  = mpatches.Patch(color='blue',label='KOREN99')
             plt.legend(handles=[red_patch,blue_patch])
             f.autofmt_xdate()
+            plt.show()
+
+
         if plotCom == 2:
             print "ok"
+    #paper mapping mos
+    if plotType == 3:
+        #ax define
+        fig         =  plt.figure()
+        # nc files
+        readObsData    = ReadObsData("D:\\worktemp\\Permafrost(NOAH)\\Data\\TGLDataPlotMOS.xls")
+
+        #layer info  mos
+        mosAxList            = [0,2,4,6,8]
+        #layer info  temp
+        tempAxList          =  [1,3,5,7,9]
+        obsStyle            =  'r'
+        simStyle            =  'b'
+        
+        #1 #############################################################################################
+        obsDataRes =  getObsData(readObsData,1,"MOS1")
+        modelRes   =  getObsData(readObsData,6,"MOS1")
+        ax         =  fig.add_subplot(321)
+        ax.plot(dataIdxs,obsDataRes,obsStyle,label='Obs')
+        ax.plot(dataIdxs,modelRes,simStyle,label='Model')
+        ax.set_ylabel("Water(%)")
+        ax.set_ylim([0,40])
+        #nse = nashsutcliff(obsDataRes,modelRes)
+        ax.annotate('(a) 0.05m', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+                xytext=(-450, 160), textcoords='offset points',
+                ha='left', va='top')
+        formatAxticks(ax)
+        plt.setp(ax.get_xticklabels() , visible=False)
+
+        
+        #2016.6.9
+        ax.annotate('calibration ', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+                xytext=(-210, 160), textcoords='offset points',
+                ha='left', va='top')
+        ax.annotate('validation  ', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+                xytext=(-118, 160), textcoords='offset points',
+                ha='left', va='top')
+        ax.axvline(x=calEndTime,ymin=0,ymax=3,c="black",linewidth=2,linestyle="dashed", zorder=0)
 
 
-    plt.subplots_adjust(bottom=0.15)
-    plt.show()
+        # 2 #############################################################################################
+        obsDataRes =  getObsData(readObsData,2,"MOS1")
+        modelRes   =  getObsData(readObsData,7,"MOS1")
+        ax         = fig.add_subplot(322)
+        ax.plot(dataIdxs,obsDataRes,obsStyle,label='Obs')
+        ax.plot(dataIdxs,modelRes,simStyle,label='Model')
+        ax.set_ylabel("Water(%)")
+        ax.set_ylim([0,40])
+        #nse = nashsutcliff(obsDataRes,modelRes)
+        ax.annotate('(b) 0.1m', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+                xytext=(-450, 160), textcoords='offset points',
+                ha='left', va='top')
+        formatAxticks(ax)
+        plt.setp(ax.get_xticklabels() , visible=False)
+
+        #2016.6.9
+        ax.annotate('calibration ', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+                xytext=(-210, 160), textcoords='offset points',
+                ha='left', va='top')
+        ax.annotate('validation  ', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+                xytext=(-118, 160), textcoords='offset points',
+                ha='left', va='top')
+        ax.axvline(x=calEndTime,ymin=0,ymax=3,c="black",linewidth=2, linestyle="dashed", zorder=0)
+
+
+
+
+        # 3 #############################################################################################
+        obsDataRes =  getObsData(readObsData,3,"MOS1")
+        modelRes   =  getObsData(readObsData,8,"MOS1")
+        ax         = fig.add_subplot(323)
+        ax.plot(dataIdxs,obsDataRes,obsStyle,label='Obs')
+        ax.plot(dataIdxs,modelRes,simStyle,label='Model')
+        ax.set_ylabel("Water(%)")
+        ax.set_ylim([0,40])
+        #nse = nashsutcliff(obsDataRes,modelRes)
+        ax.annotate('(c) 0.4m', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+            xytext=(-450, 160), textcoords='offset points',
+            ha='left', va='top')
+        formatAxticks(ax)
+        plt.setp(ax.get_xticklabels() , visible=False)
+
+        ax.axvline(x=calEndTime,ymin=0,ymax=3,c="black",linewidth=2, linestyle="dashed", zorder=0)
+
+
+        # 4 #############################################################################################
+        obsDataRes =  getObsData(readObsData,4,"MOS1")
+        modelRes   =  getObsData(readObsData,9,"MOS1")
+        ax         = fig.add_subplot(324)
+        ax.plot(dataIdxs,obsDataRes,obsStyle,label='Obs')
+        ax.plot(dataIdxs,modelRes,simStyle,label='Model')
+        ax.set_ylabel("Water(%)")
+        ax.set_ylim([0,40])
+        ax.tick_params(axis='x', labelsize=15)
+        #nse = nashsutcliff(obsDataRes,modelRes)
+        ax.annotate('(d) 1.05m', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+            xytext=(-450, 160), textcoords='offset points',
+            ha='left', va='top')
+        formatAxticks(ax)
+        plt.xlabel('Date,Day/Month/Year')
+        ax.xaxis.label.set_size(15)
+        ax.axvline(x=calEndTime,ymin=0,ymax=3,c="black",linewidth=2, linestyle="dashed", zorder=0)
+
+
+        # 5 #############################################################################################
+        obsDataRes =  getObsData(readObsData,5,"MOS1")
+        modelRes   =  getObsData(readObsData,10,"MOS1")
+        ax         = fig.add_subplot(325)
+        ax.plot(dataIdxs,obsDataRes,obsStyle,label='Obs')
+        ax.plot(dataIdxs,modelRes,simStyle,label='Model')
+        ax.set_ylabel("Water(%)")
+        ax.set_ylim([0,40])
+        ax.tick_params(axis='x', labelsize=15)
+        #nse = nashsutcliff(obsDataRes,modelRes)
+        ax.annotate('(e) 2.45m', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+            xytext=(-450, 160), textcoords='offset points',
+            ha='left', va='top')
+        formatAxticks(ax)
+        plt.xlabel('Date,Day/Month/Year')
+        ax.xaxis.label.set_size(15)
+
+        ax.axvline(x=calEndTime,ymin=0,ymax=3,c="black",linewidth=2, linestyle="dashed", zorder=0)
+
+
+        blue_line = mlines.Line2D([], [], color='blue', marker='',
+                          markersize=15, label='Simulated unfrozen water content')
+        red_line = mlines.Line2D([], [], color='red', marker='',
+                          markersize=15, label='Observed unfrozen water content')
+        lg=plt.legend(handles=[blue_line,red_line],bbox_to_anchor=(2.0,0.6), loc= 1, ncol=1)
+        lg.get_frame().set_alpha(0)
+
+
+        fig.savefig('test.eps', dpi=300)
+
+        plt.show()
+    #paper 
+    if plotType == 4:
+        #ax define
+        #f, ((ax1,ax2),(ax3,ax4),(ax5,ax6),(ax7,ax8),(ax9,ax10)) \
+        #           = plt.subplots(5,2,sharex='col', sharey='row')
+        #axlist      = [ax1,ax2,ax3,ax4,ax5,ax6,ax7,ax8,ax9,ax10] 
+        fig         =  plt.figure()
+        # nc files
+        readObsData    = ReadObsData("D:\\worktemp\\Permafrost(NOAH)\\Data\\TGLDataPlotTEMP.xls")
+        obsStyle            =  'r'
+        simStyle            =  'b'
+        #1 #############################################################################################
+        obsDataRes =  getObsData(readObsData,1,"MOS1")
+        modelRes   =  getObsData(readObsData,8,"MOS1")
+        ax         =  fig.add_subplot(421)
+        ax.plot(dataIdxs,obsDataRes,obsStyle,label='Obs')
+        ax.plot(dataIdxs,modelRes,simStyle,label='Model')
+        ax.set_ylabel("Temperature($^\circ$C)")
+        ax.set_ylim([-25,23])
+        nse = nashsutcliff(obsDataRes,modelRes)
+        ax.annotate('(a) 0.05m', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+                xytext=(-450, 120), textcoords='offset points',
+                ha='left', va='top')
+        plt.setp(ax.get_xticklabels() , visible=False)
+        formatAxticks(ax)
+
+
+        #2016.6.9
+        ax.annotate('calibration ', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+                xytext=(-210, 120), textcoords='offset points',
+                ha='left', va='top')
+        ax.annotate('validation  ', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+                xytext=(-118, 120), textcoords='offset points',
+                ha='left', va='top')
+        ax.axvline(x=calEndTime,ymin=0,ymax=3,c="black",linewidth=2,linestyle="dashed", zorder=0)
+
+
+
+        #ax.yaxis.label.set_size(11)
+
+        obsDataRes =  getObsData(readObsData,2,"MOS1")
+        modelRes   =  getObsData(readObsData,9,"MOS1")
+        ax         =  fig.add_subplot(422)
+        ax.plot(dataIdxs,obsDataRes,obsStyle,label='Obs')
+        ax.plot(dataIdxs,modelRes,simStyle,label='Model')
+        ax.set_ylabel("Temperature($^\circ$C)")
+        ax.set_ylim([-25,23])
+        nse = nashsutcliff(obsDataRes,modelRes)
+        ax.annotate('(b) 0.1m', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+                xytext=(-450, 120), textcoords='offset points',
+                ha='left', va='top')
+        plt.setp(ax.get_xticklabels() , visible=False)
+        formatAxticks(ax)
+        #ax.yaxis.label.set_size(11)
+
+
+        #2016.6.9
+        ax.annotate('calibration ', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+                xytext=(-210, 120), textcoords='offset points',
+                ha='left', va='top')
+        ax.annotate('validation  ', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+                xytext=(-118, 120), textcoords='offset points',
+                ha='left', va='top')
+        ax.axvline(x=calEndTime,ymin=0,ymax=3,c="black",linewidth=2,linestyle="dashed", zorder=0)
+
+
+        # 2 #############################################################################################
+        obsDataRes =  getObsData(readObsData,3,"MOS1")
+        modelRes   =  getObsData(readObsData,10,"MOS1")
+        ax         = fig.add_subplot(423)
+        ax.plot(dataIdxs,obsDataRes,obsStyle,label='Obs')
+        ax.plot(dataIdxs,modelRes,simStyle,label='Model')
+        ax.set_ylabel("Temperature($^\circ$C)")
+        ax.set_ylim([-25,23])
+        nse = nashsutcliff(obsDataRes,modelRes)
+        ax.annotate('(c) 0.4m', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+                xytext=(-450, 120), textcoords='offset points',
+                ha='left', va='top')
+        plt.setp(ax.get_xticklabels() , visible=False)
+        formatAxticks(ax)
+        #ax.yaxis.label.set_size(11)
+        ax.axvline(x=calEndTime,ymin=0,ymax=3,c="black",linewidth=2,linestyle="dashed", zorder=0)
+
+
+
+        obsDataRes =  getObsData(readObsData,4,"MOS1")
+        modelRes   =  getObsData(readObsData,11,"MOS1")
+        ax         = fig.add_subplot(424)
+        ax.plot(dataIdxs,obsDataRes,obsStyle,label='Obs')
+        ax.plot(dataIdxs,modelRes,simStyle,label='Model')
+        ax.set_ylabel("Temperature($^\circ$C)")
+        ax.set_ylim([-25,23])
+        nse = nashsutcliff(obsDataRes,modelRes)
+        ax.annotate('(d) 1.05m', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+                xytext=(-450, 120), textcoords='offset points',
+                ha='left', va='top')
+
+        formatAxticks(ax)
+        plt.setp(ax.get_xticklabels() , visible=False)
+        #ax.yaxis.label.set_size(11)
+        ax.axvline(x=calEndTime,ymin=0,ymax=3,c="black",linewidth=2,linestyle="dashed", zorder=0)
+
+
+        # 3 #############################################################################################
+        obsDataRes =  getObsData(readObsData,5,"MOS1")
+        modelRes   =  getObsData(readObsData,12,"MOS1")
+        ax         = fig.add_subplot(425)
+        ax.plot(dataIdxs,obsDataRes,obsStyle,label='Obs')
+        ax.plot(dataIdxs,modelRes,simStyle,label='Model')
+        ax.set_ylabel("Temperature($^\circ$C)")
+        ax.set_ylim([-25,23])
+        nse = nashsutcliff(obsDataRes,modelRes)
+        ax.annotate('(e) 2.45m', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+            xytext=(-450, 120), textcoords='offset points',
+            ha='left', va='top')
+        plt.setp(ax.get_xticklabels() , visible=False)
+        formatAxticks(ax)
+        #ax.yaxis.label.set_size(11)
+        ax.axvline(x=calEndTime,ymin=0,ymax=3,c="black",linewidth=2,linestyle="dashed", zorder=0)
+
+
+
+        obsDataRes =  getObsData(readObsData,6,"MOS1")
+        modelRes   =  getObsData(readObsData,13,"MOS1")
+        ax         = fig.add_subplot(426)
+        ax.plot(dataIdxs,obsDataRes,obsStyle,label='Obs')
+        ax.plot(dataIdxs,modelRes,simStyle,label='Model')
+        ax.set_ylabel("Temperature($^\circ$C)")
+        ax.set_ylim([-2.5,1])
+        ax.tick_params(axis='x', labelsize=15)
+        nse = nashsutcliff(obsDataRes,modelRes)
+        ax.annotate('(f) 13m', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+            xytext=(-450, 120), textcoords='offset points',
+            ha='left', va='top')
+        formatAxticks(ax)
+        plt.xlabel('Date,Day/Month/Year')
+        ax.xaxis.label.set_size(15)
+
+        ax.axvline(x=calEndTime,ymin=0,ymax=3,c="black",linewidth=2,linestyle="dashed", zorder=0)
+
+
+        # 5 #############################################################################################
+        obsDataRes =  getObsData(readObsData,7,"MOS1")
+        modelRes   =  getObsData(readObsData,14,"MOS1")
+        ax         = fig.add_subplot(427)
+        ax.plot(dataIdxs,obsDataRes,obsStyle,label='Obs')
+        ax.plot(dataIdxs,modelRes,simStyle,label='Model')
+        ax.set_ylabel("Temperature($^\circ$C)")
+        ax.set_ylim([-2.5,1])
+        ax.tick_params(axis='x', labelsize=15)
+        nse = nashsutcliff(obsDataRes,modelRes)
+        ax.annotate('(g) 15m', xy=(1, 0), xycoords='axes fraction', fontsize=16,
+            xytext=(-450, 120), textcoords='offset points',
+            ha='left', va='top')
+
+        formatAxticks(ax)
+        plt.xlabel('Date,Day/Month/Year')
+        ax.xaxis.label.set_size(15)
+        #ax.yaxis.label.set_size(11)
+        ax.axvline(x=calEndTime,ymin=0,ymax=3,c="black",linewidth=2,linestyle="dashed", zorder=0)
+
+
+
+        blue_line = mlines.Line2D([], [], color='blue', marker='',
+                          markersize=30, label='Simulated soil temperature')
+        red_line = mlines.Line2D([], [], color='red', marker='',
+                          markersize=30, label='Observed soil temperature')
+        lg=plt.legend(handles=[blue_line,red_line],bbox_to_anchor=(2.0,0.55), loc= 1, ncol=1)
+        lg.get_frame().set_alpha(0)
+
+        plt.show()
 
 
 

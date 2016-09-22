@@ -92,6 +92,63 @@ class upDateTxtInfo(object):
              self.sForceTxt.sfcdif_option     =  1
          return  self.sForceTxt;
 
+
+###################################################################################
+# Class getCFMDFiles
+###################################################################################
+class getCFMDDataFiles(object):
+    strncDataPath       = ""
+    strFileNameList     = "" 
+    startdate           =  datetime.datetime(2002,1,1)
+    enddate             =  datetime.datetime(2011,1,1)
+    def __init__(self,strncFilePathIn,strFileNameListIn,startDateIn,endDateIn):
+        self.strncDataPath      =  strncFilePathIn;
+        self.strFileNameList    =  strFileNameListIn;
+        self.startdate          =  startDateIn;
+        self.enddate            =  endDateIn;
+    def getCFMDFiles(self):
+        print "# search filepathlist           ################################"
+        ncAllFilePathlist =  self.__searchAllFile()
+        return ncAllFilePathlist
+    ###################################################################################
+    # Function searchFile
+    ###################################################################################
+    #search file
+    #NOW SUPORT year data
+    def __searchSingnalFile(self,datafinallyPath):
+        if not os.path.exists(datafinallyPath):
+            print "There have no Path: " + datafinallyPath
+            os.system("pause")
+            exit(0)
+        ncSingnalFilePathlist  = []
+        del ncSingnalFilePathlist[:]
+        startYear  =  self.startdate.year
+        endYear    =  self.enddate.year
+        while (startYear < endYear):
+            strStartYear        =  str(startYear)
+            strMatchSuffix      =  "*"+ strStartYear +"*.nc"
+            for filename in glob.glob(datafinallyPath+"\\"+ strMatchSuffix):
+                ncSingnalFilePathlist.append(filename)
+            startYear+=1
+        return ncSingnalFilePathlist
+
+    #search all file
+    def __searchAllFile(self):
+        ncAllFilePathlist   =   []
+        del ncAllFilePathlist[:]
+        for subDirectory in self.strFileNameList:
+            datafinallyJoinPath =   os.path.join(self.strncDataPath,subDirectory)
+            if not os.path.exists(datafinallyJoinPath):
+                print "There have no Path: " + datafinallyJoinPath
+                os.system("pause")
+                exit(0)
+            else:
+                print subDirectory + " data have been Find From " + str(self.startdate.year) +" to "  \
+                                   + str(self.enddate.year)
+            ncAllFilePathlist.append(self.__searchSingnalFile(datafinallyJoinPath))
+        return ncAllFilePathlist
+
+
 ###################################################################################
 # Class update CFMD txtinfo
 ###################################################################################
@@ -140,6 +197,13 @@ class upDateCFMDData(object):
         varPointAllData      =   self.__getAllPointData(self.ncAllFilePathlist)
         varPointAllData.insert(0,varTimeDataList)
         return zip(*varPointAllData)
+
+    ###################################################################################
+    # getSingleCFMDData
+    ###################################################################################
+    def getSingleCFMDData(self):
+        varPointAllData   = self.__getPointData(self.ncAllFilePathlist[0])
+        return varPointAllData
 
     ###################################################################################
     # Function getData
@@ -198,60 +262,7 @@ class upDateCFMDData(object):
         varPointAllData[6] = values
         return varPointAllData
 
-###################################################################################
-# Class getCFMDFiles
-###################################################################################
-class getCFMDDataFiles(object):
-    strncDataPath       = ""
-    strFileNameList     = "" 
-    startdate           =  datetime.datetime(2002,1,1)
-    enddate             =  datetime.datetime(2011,1,1)
-    def __init__(self,strncFilePathIn,strFileNameListIn,startDateIn,endDateIn):
-        self.strncDataPath      =  strncFilePathIn;
-        self.strFileNameList    =  strFileNameListIn;
-        self.startdate          =  startDateIn;
-        self.enddate            =  endDateIn;
-    def getCFMDFiles(self):
-        print "# search filepathlist           ################################"
-        ncAllFilePathlist =  self.__searchAllFile()
-        return ncAllFilePathlist
-    ###################################################################################
-    # Function searchFile
-    ###################################################################################
-    #search file
-    #NOW SUPORT year data
-    def __searchSingnalFile(self,datafinallyPath):
-        if not os.path.exists(datafinallyPath):
-            print "There have no Path: " + datafinallyPath
-            os.system("pause")
-            exit(0)
-        ncSingnalFilePathlist  = []
-        del ncSingnalFilePathlist[:]
-        startYear  =  self.startdate.year
-        endYear    =  self.enddate.year
-        while (startYear < endYear):
-            strStartYear        =  str(startYear)
-            strMatchSuffix      =  "*"+ strStartYear +"*.nc"
-            for filename in glob.glob(datafinallyPath+"\\"+ strMatchSuffix):
-                ncSingnalFilePathlist.append(filename)
-            startYear+=1
-        return ncSingnalFilePathlist
 
-    #search all file
-    def __searchAllFile(self):
-        ncAllFilePathlist   =   []
-        del ncAllFilePathlist[:]
-        for subDirectory in self.strFileNameList:
-            datafinallyJoinPath =   os.path.join(self.strncDataPath,subDirectory)
-            if not os.path.exists(datafinallyJoinPath):
-                print "There have no Path: " + datafinallyJoinPath
-                os.system("pause")
-                exit(0)
-            else:
-                print subDirectory + " data have been Find From " + str(self.startdate.year) +" to "  \
-                                   + str(self.enddate.year)
-            ncAllFilePathlist.append(self.__searchSingnalFile(datafinallyJoinPath))
-        return ncAllFilePathlist
 
 ###################################################################################
 # Class write forcedata to txt

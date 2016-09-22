@@ -22,6 +22,8 @@
 2015.12.18 <br>
  Add getMaxMinData <br>
 
+2016.9.22 Update Permafrost  Change
+
 
 #### Dependencies
 To build from source, you will need: <br>  
